@@ -6,12 +6,31 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 blog_bp = Blueprint("blog", __name__)
 
 @blog_bp.route("/", methods=["GET"])
-@jwt_required()
 def list_posts():
-    user_id = get_jwt_identity()
-    posts = Post.query.filter_by(author_id=user_id).all()
-    return jsonify([{"id": p.id, "title": p.title, "body": p.body} for p in posts]), 200
+    posts = Post.query.order_by(Post.id.desc()).all()  # 默认返回所有文章
 
+    return jsonify([{"id": p.id, 
+                     "title": p.title, 
+                     "body": p.body,
+                     "author_id":p.author_id,
+                     "author_name":p.author.username
+                     } for p in posts]), 200
+
+@blog_bp.route("/<int:post_id>",methods=["GET"])
+@jwt_required()
+def get_post(post_id):
+    user_id = int(get_jwt_identity())
+    post = Post.query.get_or_404(post_id)
+    
+    if post.author_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    return jsonify({
+        "id": post.id,
+        "title": post.title,
+        "body": post.body,
+        "author_id": post.author_id
+    }), 200
 
 @blog_bp.route("/", methods=["POST"])
 @jwt_required()
