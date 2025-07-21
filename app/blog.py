@@ -5,6 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 blog_bp = Blueprint("blog", __name__)
 
+#返回所有文章
 @blog_bp.route("/", methods=["GET"])
 def list_posts():
     posts = Post.query.order_by(Post.id.desc()).all()  # 默认返回所有文章
@@ -16,12 +17,17 @@ def list_posts():
                      "author_name":p.author.username
                      } for p in posts]), 200
 
+#返回指定文章标题与内容
 @blog_bp.route("/<int:post_id>",methods=["GET"])
 @jwt_required()
 def get_post(post_id):
+    #获取用户名
     user_id = int(get_jwt_identity())
+    
+    #获取post id
     post = Post.query.get_or_404(post_id)
     
+    #如果post的作者名与用户名不匹配，返回错误
     if post.author_id != user_id:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -32,6 +38,7 @@ def get_post(post_id):
         "author_id": post.author_id
     }), 200
 
+#创建post
 @blog_bp.route("/", methods=["POST"])
 @jwt_required()
 def create_post():
@@ -46,7 +53,7 @@ def create_post():
 
     return jsonify({"msg": "Post created", "id": new_post.id}), 201
 
-
+#更新post
 @blog_bp.route("/<int:post_id>", methods=["PUT"])
 @jwt_required()
 def update_post(post_id):
@@ -63,7 +70,7 @@ def update_post(post_id):
 
     return jsonify({"msg": "Post updated"}), 200
 
-
+#删除post
 @blog_bp.route("/<int:post_id>", methods=["DELETE"])
 @jwt_required()
 def delete_post(post_id):
